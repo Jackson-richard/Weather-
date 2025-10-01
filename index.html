@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Weather App</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="image/Cloud_free_icons_designed_by_Freepik-removebg-preview.png" >
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-text-color: #ffffff;
+            --secondary-text-color: #eeeeee;
+            --shadow-color: rgba(0, 0, 0, 0.25);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            color: var(--primary-text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: background-image 1s ease-in-out;
+        }
+
+        .weather-card {
+            width: 90%;
+            max-width: 450px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 8px 32px 0 var(--shadow-color);
+            transition: all 0.3s ease;
+        }
+
+        .search-container {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-bar {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .search-bar input {
+            flex-grow: 1;
+            border: 1px solid rgba(255, 255, 255, 0.3); /* Add a subtle border */
+            outline: none;
+            padding: 1rem;
+            border-radius: 15px 0 0 15px;
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--primary-text-color);
+            font-size: 1rem;
+            font-family: 'Montserrat', sans-serif;
+            transition: all 0.3s ease; /* Smooth transition for focus */
+        }
+
+        .search-bar input:focus {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2); /* Add a glow effect on focus */
+        }
+
+        .search-bar input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .search-bar button {
+            border: 1px solid rgba(255, 255, 255, 0.3); /* Add a subtle border */
+            border-left: none; /* Remove left border to merge with input */
+            outline: none;
+            padding: 1rem 1.2rem;
+            border-radius: 0 15px 15px 0;
+            background: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            color: var(--primary-text-color);
+            font-size: 1.2rem;
+            transition: background 0.3s ease;
+        }
+
+        .search-bar button:hover {
+            background: rgba(255, 255, 255, 0.6);
+        }
+        
+        /* --- NEW: Suggestions Box --- */
+        .suggestions-box {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            margin-top: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            z-index: 10;
+        }
+
+        .suggestion-item {
+            padding: 0.8rem 1.2rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        /* --- END: New Styles --- */
+
+        .weather-info {
+            display: none; /* Hidden by default */
+            animation: fadeIn 1s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .city-name { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .weather-icon { width: 150px; height: 150px; margin: 1rem auto; }
+        .temperature { font-size: 4rem; font-weight: 700; position: relative; display: inline-block; margin-bottom: 0.5rem; }
+        .temperature::after { content: '°C'; position: absolute; font-size: 1.5rem; top: 15px; right: -25px; }
+        .weather-description { font-size: 1.5rem; font-weight: 300; text-transform: capitalize; margin-bottom: 2rem; }
+        .details-container { display: flex; justify-content: space-around; align-items: center; }
+        .detail-item { display: flex; align-items: center; gap: 10px; }
+        .detail-item i { font-size: 1.5rem; }
+        .detail-item span { font-size: 1.1rem; font-weight: 400; }
+        .error-message { display: none; color: #ffcccc; margin-top: 1rem; }
+    </style>
+</head>
+<body style="background-image: url('https://images.unsplash.com/photo-1489515217757-5443a443a75e?q=80&w=2070&auto=format&fit=crop');">
+
+    <div class="weather-card">
+        <div class="search-container">
+            <div class="search-bar">
+                <input type="text" id="city-input" placeholder="Enter city name..." autocomplete="off">
+                <button id="search-btn"><i class="fas fa-search"></i></button>
+            </div>
+            <!-- This is the new container for suggestions -->
+            <div class="suggestions-box" id="suggestions-box"></div>
+        </div>
+        
+        <div class="error-message" id="error-message">
+            <p>City not found. Please try again.</p>
+        </div>
+
+        <div class="weather-info" id="weather-info">
+            <h2 class="city-name" id="city-name">City Name</h2>
+            <img src="" alt="Weather Icon" class="weather-icon" id="weather-icon">
+            <h1 class="temperature" id="temperature">24</h1>
+            <p class="weather-description" id="weather-description">Clear Sky</p>
+            
+            <div class="details-container">
+                <div class="detail-item"> <i class="fas fa-tint"></i> <span id="humidity">48%</span> </div>
+                <div class="detail-item"> <i class="fas fa-wind"></i> <span id="wind-speed">15 km/h</span> </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const openWeatherApiKey = "78e601f0c367374b7a1eefa67eedb21b";
+            // --- NEW: Add your GeoDB API key here ---
+            const geoApiKey = "YOUR_RAPIDAPI_KEY"; // <-- IMPORTANT: PASTE YOUR GeoDB/RapidAPI KEY HERE
+            
+            const searchBtn = document.getElementById('search-btn');
+            const cityInput = document.getElementById('city-input');
+            const suggestionsBox = document.getElementById('suggestions-box');
+            
+            // Other element references...
+            const weatherInfo = document.getElementById('weather-info');
+            const errorMessage = document.getElementById('error-message');
+            const cityName = document.getElementById('city-name');
+            const weatherIcon = document.getElementById('weather-icon');
+            const temperature = document.getElementById('temperature');
+            const weatherDescription = document.getElementById('weather-description');
+            const humidity = document.getElementById('humidity');
+            const windSpeed = document.getElementById('wind-speed');
+
+            const weatherBackgrounds = {
+                'Clear': 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2070&auto=format&fit=crop',
+                'Clouds': 'https://images.unsplash.com/photo-1499956827185-0d63ee78a910?q=80&w=1974&auto=format&fit=crop',
+                'Rain': 'https://images.unsplash.com/photo-1515694346937-94d85e41e622?q=80&w=2070&auto=format&fit=crop',
+                'Drizzle': 'https://images.unsplash.com/photo-1515694346937-94d85e41e622?q=80&w=2070&auto=format&fit=crop',
+                'Thunderstorm': 'https://images.unsplash.com/photo-1605727226425-635c5521e4f4?q=80&w=1932&auto=format&fit=crop',
+                'Snow': 'https://images.unsplash.com/photo-1517299321609-52687d1bc55a?q=80&w=2070&auto=format&fit=crop',
+                'Mist': 'https://images.unsplash.com/photo-1487621167335-56c28744272c?q=80&w=2070&auto=format&fit=crop',
+                'Haze': 'https://images.unsplash.com/photo-1487621167335-56c28744272c?q=80&w=2070&auto=format&fit=crop',
+                'Default': 'https://images.unsplash.com/photo-1489515217757-5443a443a75e?q=80&w=2070&auto=format&fit=crop'
+            };
+            
+            const fetchWeather = async (city) => {
+                if (!openWeatherApiKey || openWeatherApiKey === "YOUR_API_KEY") {
+                    showError("Please add your OpenWeatherMap API key to the script.");
+                    return;
+                }
+                try {
+                    const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${openWeatherApiKey}&units=metric`;
+                    const response = await fetch(url);
+                    if (!response.ok) { throw new Error('City not found'); }
+                    const data = await response.json();
+                    updateUI(data);
+                    hideError();
+                } catch (error) { showError(error.message); }
+            };
+            
+            const updateUI = (data) => {
+                cityName.textContent = data.name;
+                temperature.textContent = Math.round(data.main.temp);
+                weatherDescription.textContent = data.weather[0].description;
+                humidity.textContent = `${data.main.humidity}%`;
+                windSpeed.textContent = `${Math.round(data.wind.speed * 3.6)} km/h`;
+                const iconCode = data.weather[0].icon;
+                weatherIcon.src = `https://openweathermap.org/img/wn/${iconCode}@4x.png`;
+                const weatherCondition = data.weather[0].main;
+                document.body.style.backgroundImage = `url('${weatherBackgrounds[weatherCondition] || weatherBackgrounds.Default}')`;
+                weatherInfo.style.display = 'block';
+            };
+
+            const showError = (message) => {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+                weatherInfo.style.display = 'none';
+            };
+            
+            const hideError = () => { errorMessage.style.display = 'none'; };
+
+            // --- NEW: Debounce function to limit API calls ---
+            const debounce = (func, delay) => {
+                let timeoutId;
+                return (...args) => {
+                    clearTimeout(timeoutId);
+                    timeoutId = setTimeout(() => {
+                        func.apply(this, args);
+                    }, delay);
+                };
+            };
+            
+            // --- NEW: Fetch city suggestions ---
+            const getCitySuggestions = async (query) => {
+                if (!geoApiKey || geoApiKey === "YOUR_RAPIDAPI_KEY" || query.length < 2) {
+                    suggestionsBox.innerHTML = '';
+                    return;
+                }
+                const url = `https://wft-geo-db.p.rapidapi.com/v1/geo/cities?minPopulation=10000&namePrefix=${query}`;
+                const options = {
+                    method: 'GET',
+                    headers: {
+                        'X-RapidAPI-Key': geoApiKey,
+                        'X-RapidAPI-Host': 'wft-geo-db.p.rapidapi.com'
+                    }
+                };
+                try {
+                    const response = await fetch(url, options);
+                    const result = await response.json();
+                    displaySuggestions(result.data);
+                } catch (error) {
+                    console.error("Error fetching city suggestions:", error);
+                }
+            };
+
+            // --- NEW: Display suggestions in the UI ---
+            const displaySuggestions = (suggestions) => {
+                if (!suggestions || suggestions.length === 0) {
+                    suggestionsBox.innerHTML = '';
+                    return;
+                }
+                const html = suggestions.map(place => 
+                    `<div class="suggestion-item" data-city="${place.city}, ${place.countryCode}">${place.city}, ${place.country}</div>`
+                ).join('');
+                suggestionsBox.innerHTML = html;
+            };
+
+            // --- EVENT LISTENERS ---
+            searchBtn.addEventListener('click', () => {
+                const city = cityInput.value.trim();
+                if (city) fetchWeather(city);
+            });
+
+            cityInput.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') {
+                    const city = cityInput.value.trim();
+                    if (city) fetchWeather(city);
+                    suggestionsBox.innerHTML = ''; // Hide suggestions on Enter
+                }
+            });
+            
+            // --- NEW: Autocomplete listener ---
+            cityInput.addEventListener('input', debounce((e) => {
+                getCitySuggestions(e.target.value);
+            }, 300)); // 300ms delay
+
+            // --- NEW: Click listener for suggestions ---
+            suggestionsBox.addEventListener('click', (e) => {
+                if (e.target && e.target.matches('.suggestion-item')) {
+                    const city = e.target.dataset.city;
+                    cityInput.value = city;
+                    fetchWeather(city);
+                    suggestionsBox.innerHTML = ''; // Hide suggestions after selection
+                }
+            });
+            
+            // --- NEW: Hide suggestions when clicking outside ---
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.search-container')) {
+                    suggestionsBox.innerHTML = '';
+                }
+            });
+            
+            // Fetch weather for a default city on load
+            fetchWeather("Chennai");
+        });
+    </script>
+</body>
+</html>
